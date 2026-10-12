@@ -1,3 +1,9 @@
+# v0.6.3
+
+- Persetujuan OAuth menangani Origin null/kosong dengan sesi dan CSRF yang tetap wajib.
+- Origin asing eksplisit tetap ditolak.
+- Referrer-Policy same-origin khusus halaman OAuth.
+
 # v0.6.2
 
 - Persetujuan ulang massal dengan preview, evidence, audit dan perlindungan bounce.
