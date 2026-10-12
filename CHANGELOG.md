@@ -1,3 +1,9 @@
+# v0.6.2
+
+- Persetujuan ulang massal dengan preview, evidence, audit dan perlindungan bounce.
+- Sesi OAuth SameSite=Lax khusus /oauth; cookie CRM tetap Strict.
+- Pesan kesalahan sesi/origin terpisah; callback CSP sesuai Claude.
+
 # v0.6.1
 
 - OAuth Claude web: metadata discovery, DCR, login admin, izin akses, PKCE S256, refresh rotation dan revoke.

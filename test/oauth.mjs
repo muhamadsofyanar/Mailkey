@@ -15,9 +15,12 @@ test('OAuth discovery, admin approval, PKCE, resource binding, refresh rotation 
  assert.equal((await fetch(base+'/oauth/authorize?'+new URLSearchParams({...params,redirect_uri:'https://evil.example'}))).status,400);
  assert.equal((await fetch(base+'/oauth/authorize?'+new URLSearchParams({...params,code_challenge_method:'plain'}))).status,400);
  const page=await fetch(base+'/oauth/authorize?'+new URLSearchParams(params));assert.equal(page.status,200);assert.match(await page.text(),/Masuk ke MailK/);
- const login=await api('/api/login',{email:'test@example.com',password:'test-strong-password'});cookie=login.headers.get('set-cookie').split(';')[0];
+ const login=await api('/api/login',{email:'test@example.com',password:'test-strong-password'});const cookies=login.headers.getSetCookie();assert.ok(cookies.some(c=>c.includes('oauth_session=')&&c.includes('SameSite=Lax')));cookie=cookies.find(c=>c.startsWith('oauth_session=')).split(';')[0];
  const consent=await fetch(base+'/oauth/authorize?'+new URLSearchParams(params),{headers:{Cookie:cookie}}).then(r=>r.text());const tx=consent.match(/name="transaction" value="([^"]+)"/)[1],csrf=consent.match(/name="csrf" value="([^"]+)"/)[1];
  assert.equal((await form('/oauth/authorize',{transaction:tx,csrf:'wrong',decision:'approve'})).status,403);
+ const noSession=await fetch(base+'/oauth/authorize',{method:'POST',headers:{Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({transaction:tx,csrf,decision:'approve'})});assert.equal(noSession.status,401);
+ const badOrigin=await fetch(base+'/oauth/authorize',{method:'POST',headers:{Origin:'https://evil.example',Cookie:cookie,'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({transaction:tx,csrf,decision:'approve'})});assert.equal(badOrigin.status,403);
+
  const approved=await form('/oauth/authorize',{transaction:tx,csrf,decision:'approve'});assert.equal(approved.status,303);const callback=new URL(approved.headers.get('location'));assert.equal(callback.searchParams.get('state'),'test-state');const code=callback.searchParams.get('code');
  const tokenParams={grant_type:'authorization_code',client_id:client.client_id,redirect_uri:client.redirect_uris[0],code,code_verifier:verifier,resource:base+'/mcp'};
  assert.equal((await form('/oauth/token',{...tokenParams,code_verifier:'z'.repeat(48)})).status,400);
@@ -25,6 +28,7 @@ test('OAuth discovery, admin approval, PKCE, resource binding, refresh rotation 
  const issued=await form('/oauth/token',tokenParams);assert.equal(issued.status,200);const tokens=await issued.json();assert.ok(tokens.refresh_token);assert.equal((await rpc(tokens.access_token)).status,200);
  assert.equal((await form('/oauth/token',tokenParams)).status,400);
  let refresh=await form('/oauth/token',{grant_type:'refresh_token',client_id:client.client_id,refresh_token:tokens.refresh_token,resource:base+'/mcp'});assert.equal(refresh.status,200);const next=await refresh.json();assert.equal((await rpc(tokens.access_token)).status,401);assert.equal((await rpc(next.access_token)).status,200);
+ cookie=cookies.find(c=>c.startsWith('crm_session=')).split(';')[0];
  const list=await api('/api/mcp-settings').then(r=>r.json());assert.equal(list.connections.length,1);assert.ok(!JSON.stringify(list).includes(next.access_token));
  assert.equal((await api('/api/mcp-settings',{revoke:list.connections[0].id})).status,200);assert.equal((await rpc(next.access_token)).status,401);
  assert.equal((await form('/oauth/token',{grant_type:'refresh_token',client_id:client.client_id,refresh_token:next.refresh_token})).status,400);

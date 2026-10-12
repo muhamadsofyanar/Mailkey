@@ -10,7 +10,7 @@ async function rpc(method,params={},auth=token){const r=await fetch(base+'/mcp',
 async function call(name,args={}){return (await rpc('tools/call',{name,arguments:args})).data;}
 test('MCP requires dedicated token and exposes CRM tools without launch or delete',async()=>{
  assert.equal((await rpc('initialize',{protocolVersion:'2025-11-25'},'wrong')).status,401);
- const init=await rpc('initialize',{protocolVersion:'2025-11-25'});assert.equal(init.status,200);assert.equal(init.data.result.serverInfo.version,'0.6.1');
+ const init=await rpc('initialize',{protocolVersion:'2025-11-25'});assert.equal(init.status,200);assert.equal(init.data.result.serverInfo.version,'0.6.2');
  const tools=(await rpc('tools/list')).data.result.tools;assert.ok(tools.some(t=>t.name==='search_contacts'));assert.ok(!tools.some(t=>/launch|delete|restore/.test(t.name)));
  const created=await call('upsert_contact',{email:'mcp@example.com',name:'MCP',company:'Acme',custom:{region:'Jakarta'}});assert.ok(!created.result.isError);const c=JSON.parse(created.result.content[0].text);assert.equal(c.status,'pending');
  const found=await call('search_contacts',{query:'Acme'});assert.equal(JSON.parse(found.result.content[0].text).contacts[0].id,c.id);
@@ -31,7 +31,7 @@ test('MCP requires dedicated token and exposes CRM tools without launch or delet
  const draft=JSON.parse((await call('create_campaign_draft',{name:'MCP Draft',subject:'Welcome',template:template.id})).result.content[0].text);assert.equal(draft.status,'draft');
  const state=await fetch(base+'/api/state',{headers:{Cookie:cookie}}).then(r=>r.json());assert.equal(state.jobs.length,0);
  const bridge=spawn(process.execPath,['mcp-bridge.mjs'],{env:{...process.env,MAILK_MCP_URL:base+'/mcp',MCP_API_TOKEN:token}});
- try{const reply=new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('bridge timeout')),5000);bridge.stdout.once('data',b=>{clearTimeout(timer);resolve(JSON.parse(b.toString().trim()));});});bridge.stdin.write(JSON.stringify({jsonrpc:'2.0',id:9,method:'initialize',params:{protocolVersion:'2025-11-25'}})+'\n');assert.equal((await reply).result.serverInfo.version,'0.6.1');}finally{bridge.kill();}
+ try{const reply=new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('bridge timeout')),5000);bridge.stdout.once('data',b=>{clearTimeout(timer);resolve(JSON.parse(b.toString().trim()));});});bridge.stdin.write(JSON.stringify({jsonrpc:'2.0',id:9,method:'initialize',params:{protocolVersion:'2025-11-25'}})+'\n');assert.equal((await reply).result.serverInfo.version,'0.6.2');}finally{bridge.kill();}
  const denied=await fetch(base+'/mcp',{method:'POST',headers:{Authorization:'Bearer '+token,Origin:'https://attacker.example','Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/list'})});assert.equal(denied.status,403);
  const api=await fetch(base+'/api/state',{headers:{Authorization:'Bearer '+token}});assert.equal(api.status,401);
  const invalid=await fetch(base+'/mcp',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:'{'});assert.equal(invalid.status,400);

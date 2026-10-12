@@ -1,3 +1,7 @@
+# MailK CRM v0.6.2
+
+Panduan terbaru: UPGRADE_V062.md.
+
 # MailK CRM v0.6.1
 
 Panduan terkini: [UPGRADE_V061.md](UPGRADE_V061.md). OAuth Claude web dikelola lewat Pengaturan → Integrasi AI / MCP.

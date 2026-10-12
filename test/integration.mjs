@@ -81,6 +81,13 @@ test('login, validation, campaign audience, suppression and tracking',async()=>{
  assert.equal((await req('/api/restore-consent',{id:restore.id,confirmed:true,evidence:'Renewed signup form 2026-10-12'})).data.status,'active');
  const statusPreview=(await req('/api/import-preview',{rows:[{email:'preview-pending@example.com'},{email:c.email}]})).data;
  assert.equal(statusPreview.status_counts.pending,1);assert.equal(statusPreview.status_counts.unsubscribed,1);
+ const bulkUnsub=(await req('/api/records/contacts',{email:'bulk-consent@example.com',status:'unsubscribed'})).data;
+ const bulkBounce=(await req('/api/records/contacts',{email:'bulk-bounce@example.com',status:'bounced'})).data;
+ const bulkIds=[bulkUnsub.id,bulkBounce.id,free.id,'abcdef'];
+ const bulkPreview=await req('/api/bulk-restore-consent',{ids:bulkIds,preview:true});assert.equal(bulkPreview.data.eligible,1);assert.equal(bulkPreview.data.bounced,1);
+ assert.equal((await req('/api/bulk-restore-consent',{ids:bulkIds,confirmed:true,evidence:''})).status,400);
+ const bulkResult=await req('/api/bulk-restore-consent',{ids:bulkIds,confirmed:true,evidence:'Renewed opt-in batch form 2026-10-12'});assert.equal(bulkResult.data.restored,1);
+ assert.equal((await req('/api/contact?email=bulk-consent@example.com')).data.status,'active');assert.equal((await req('/api/contact?email=bulk-bounce@example.com')).data.status,'bounced');
  state=(await req('/api/state')).data;
  const allAudience=(await req('/api/preview-audience',{})).data.count;
  assert.equal(allAudience,state.contacts.filter(c=>c.status==='active'&&c.consent).length);
