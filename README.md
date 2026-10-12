@@ -1,10 +1,19 @@
 # MailK CRM — aplikasi mandiri untuk Mailketing
 
-Versi perbaikan 0.3.0, dibangun dari 16 screenshot alur plugin Mailketing CRM. Aplikasi ini implementasi baru, bukan salinan kode plugin, dan tidak memerlukan WordPress atau lisensi plugin. Memerlukan akun/kredit Mailketing untuk pengiriman nyata.
+Versi pengembangan 0.4.0, dibangun dari 16 screenshot alur plugin Mailketing CRM. Aplikasi ini implementasi baru, bukan salinan kode plugin, dan tidak memerlukan WordPress atau lisensi plugin. Memerlukan akun/kredit Mailketing untuk pengiriman nyata.
 
 ## Fitur yang sudah tersedia
 
-- Dashboard statistik kontak, antrean, accepted provider, open unik, top tags, aktivitas terbaru.
+- Dashboard statistik kontak/email, prioritas follow-up, peluang aktif, pelanggan, dan keluhan terbuka.
+- Pipeline peluang penjualan: lead baru, terkualifikasi, penawaran, negosiasi, menang, tidak lanjut. Nilai peluang dan penanggung jawab tercatat.
+- Tugas follow-up dengan jadwal WIB, prioritas, penanggung jawab, dan status selesai. Pengingat ditampilkan di aplikasi, bukan notifikasi email otomatis.
+- Catatan interaksi telepon/pertemuan/email/WhatsApp. Ini pencatatan manual, bukan konektor pesan WhatsApp.
+- Transaksi pelanggan paid/unpaid/refunded dengan invoice dan tanggal pembayaran.
+- Keluhan/pelayanan open/in_progress/resolved, catatan penyelesaian, dan CSAT 1–5 dari respons pelanggan.
+- Laporan periode: pendapatan dibayar, win rate, pembelian ulang, pelanggan lama kembali, CSAT. R/F/M historis ditampilkan sebagai hari sejak pembelian terakhir, jumlah pembelian, dan total dibayar; bukan skor prediktif.
+- Tahap pelanggan lead/prospect/customer/inactive terpisah dari status langganan email. Menang atau transaksi dibayar mengubah tahap menjadi customer.
+- Sinkronisasi otomatis kontak eligible CRM ke list Mailketing pilihan, antrean persisten dan retry terbatas.
+- Status Sinkronisasi menampilkan job sync dan webhook masuk untuk diagnosis.
 - Login satu admin; cookie HttpOnly/SameSite; session 12 jam; pembatasan percobaan login; pemeriksaan origin.
 - Kontak CRUD, pencarian, filter, pagination 50 kontak, tag, status, pencatatan persetujuan.
 - Tags berwarna; custom field text/number/date/email; validasi field wajib.
@@ -107,12 +116,14 @@ Restore: hentikan container, backup terlebih dahulu database lama, ganti `/app/d
 
 ## Verifikasi yang sudah dijalankan
 
-`npm test` menjalankan dua skenario integrasi dan dua uji helper:
+`npm test` menjalankan lima pengujian: dua skenario integrasi, dua uji helper Mailketing, dan satu uji analitik CRM:
 
 1. Login/auth/origin, validasi email, deduplikasi, audience segmen, larangan launch ganda, webhook secret, suppression setelah unsubscribe dan reimport/delete.
 2. Worker dengan provider simulasi, personalisasi HTML dan snapshot template, tracking links, normalisasi message_id webhook, deduplikasi open, profil kontak, pembatalan follow-up setelah unsubscribe, serta pengiriman melewati 120 job dari autoresponder yang dijeda.
 
 Skenario pertama juga menguji verifikasi consent pending, penolakan bypass suppression, metadata subscriber/list, validasi tipe webhook, dan deduplikasi webhook.
+
+Pengujian baru mencakup sync otomatis tanpa email, lifecycle saat deal dimenangkan, larangan membuat transaksi otomatis dari deal, pembayaran berulang, tugas/keluhan/catatan, CSAT, profil pelanggan, dan penolakan penghapusan kontak yang memiliki riwayat CRM. Uji analitik memeriksa pembatasan periode dan membedakan nilai historis dari pendapatan periode.
 
 Uji helper memastikan dukungan field sender_email/email, list_id/list_name, kontak eligible, dan perlindungan field routing subscriber. Skenario integrasi juga menguji sinkronisasi berhasil, input kontak/list kosong, dan penolakan API provider yang ditampilkan dengan jelas.
 
@@ -121,7 +132,7 @@ JavaScript frontend dan server sudah diperiksa dengan `node --check`. Provider s
 ## Batas penyempurnaan dibanding screenshot
 
 - Editor template adalah editor blok sederhana; belum setara visual builder multi-column penuh.
-- Tidak ada campaign groups, A/B testing, multi-user/roles, MFA/password reset, native platform connectors, attachment editor, multi-tenant, dan visual branching workflow.
+- Tidak ada campaign groups, A/B testing, multi-user/roles, MFA/password reset, native platform connectors, attachment editor, multi-tenant, dan visual branching workflow. Nama penanggung jawab hanya metadata dalam aplikasi satu admin; tidak menyediakan login/perizinan anggota tim.
 - UI log menampilkan 500 job, 200 event, dan 100 audit terbaru; statistik agregat dihitung dari seluruh database. API/admin state memuat semua kontak, sehingga daftar besar perlu pagination server di tahap skala berikutnya.
 - Sinkronisasi list menambahkan kontak CRM ke Mailketing; daftar kontak historis Mailketing tidak otomatis ditarik ke CRM karena endpoint baca subscriber tidak ada dalam API yang dipakai. Import melalui CSV jika ingin membawa data lama.
 
@@ -133,3 +144,31 @@ Tidak ada klaim fitur ini sudah 100% identik dengan plugin. Ini versi awal fungs
 - https://api.mailketing.co.id/docs/
 - https://api.mailketing.co.id/docs/webhook.html
 - 16 screenshot dashboard yang diberikan pengguna; data pelanggan dan saldo dari screenshot tidak dimasukkan sebagai data awal aplikasi.
+
+
+## Alur CRM v0.4 yang disarankan
+
+1. Kontak masuk melalui form/API, manual, CSV, atau webhook Mailketing. Catat sumber lead, perusahaan, penanggung jawab, tahap hubungan, dan bukti persetujuan email.
+2. Buat peluang di Pipeline Penjualan. Catat nilai dan kebutuhan, lalu pindahkan tahap setelah ada perkembangan nyata.
+3. Buat tugas follow-up terkait kontak. Dashboard menyorot tugas yang terlambat; tandai selesai setelah ditindaklanjuti.
+4. Simpan hasil komunikasi di Catatan Interaksi. Jangan memasukkan informasi sensitif yang tidak diperlukan.
+5. Ketika pembayaran diterima, catat Transaksi dengan status Dibayar dan tanggal pembayaran sebenarnya. Menandai peluang Menang tidak membuat pembayaran/invoice otomatis.
+6. Catat keluhan dan penyelesaiannya. CSAT diisi dari skor pelanggan setelah keluhan selesai.
+7. Laporan CRM memakai transaksi dan aktivitas yang tercatat. Nilai peluang tidak dihitung sebagai pendapatan. Transaksi refunded/unpaid dikecualikan dari pendapatan dibayar; ini ringkasan CRM, bukan buku besar akuntansi atau rekonsiliasi bank.
+8. Kontak yang memiliki riwayat CRM tidak dapat dihapus langsung. Anda dapat mengubah tahap hubungan ke inactive, dan mengelola status langganan secara terpisah. Lifecycle inactive tidak berarti unsubscribe otomatis; atur status langganan jika ingin menghentikan email marketing.
+
+## Sinkronisasi otomatis v0.4
+
+Integrasi Mailketing → Atur list & otomatisasi → pilih Ruang 1 (atau list akun lain yang tersedia) → Aktifkan → Simpan. Anda tidak perlu menambah environment baru.
+
+Kontak CRM yang aktif, consent=true, dan tidak disuppression masuk antrean penambahan subscriber ke list. Pengiriman email boleh dijeda; sync subscriber tetap berjalan bila auto_sync aktif. Kontak yang sudah diketahui menjadi anggota list tidak diantre ulang. Network error / 429 / 5xx dicoba ulang maksimal 5 percobaan dengan jeda bertambah; status gagal dapat dicoba ulang dari Status Sinkronisasi. Error autentikasi/akses/list (401/403/404) menjeda sinkronisasi global sampai Anda memperbaiki pengaturan dan mengaktifkannya kembali.
+
+Ini penambahan keanggotaan list via POST /subscribers, bukan pembaruan semua field data provider atau reaktivasi unsubscribe. Endpoint unsubscribe/delete/update subscriber provider tidak tersedia di API yang dipakai, sehingga perubahan lokal tersebut tidak dikirim balik ke provider. Jangan mengirim campaign terpisah dari Mailketing ke subscriber yang sudah unsubscribe lokal tanpa pengelolaan suppression provider yang sesuai.
+
+Mailketing → CRM untuk subscriber baru tetap melalui webhook New Subscriber. Kontak yang sudah ada sebelum webhook aktif tetap memerlukan CSV. Event webhook tidak diantre kembali ke provider sehingga tidak membuat loop sync. Subscriber webhook tanpa bukti consent disimpan pending dan perlu verifikasi sebelum dapat dikirim email.
+
+## Upgrade v0.3 → v0.4
+
+Backup database terlebih dahulu. Upload seluruh isi paket, termasuk crm.mjs di root serta crm-ui.js dan mailketing.js dalam public/. Dockerfile sudah diperbarui untuk modul root tersebut. Database membuat tabel syncjobs otomatis; data lama tetap dipertahankan. Pertahankan volume /app/data dan environment/secret yang sudah benar. Commit dan redeploy, lalu Ctrl+Shift+R. Uji sync satu kontak dan satu rangkaian CRM sebelum dipakai tim.
+
+Server/frontend belum menjalani audit produksi independen, pengujian browser interaktif untuk layar baru, multi-user atau load test. Modul baru diuji dengan provider simulasi; pengalaman live yang sudah dibuktikan pengguna sebelumnya meliputi pengiriman, open tracking, dan unsubscribe versi v0.3.

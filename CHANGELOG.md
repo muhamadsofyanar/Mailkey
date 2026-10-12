@@ -1,5 +1,20 @@
 # Perubahan
 
+## 0.4.0
+
+- Pipeline penjualan, peluang dan nilai, perubahan tahap serta penanggung jawab.
+- Tugas follow-up, catatan interaksi, transaksi pelanggan, keluhan/pelayanan dan CSAT.
+- Lifecycle komersial terpisah dari status langganan email.
+- Profil pelanggan memuat seluruh riwayat CRM terkait.
+- Segmen dapat memakai lifecycle, perusahaan, dan sumber lead; import/export mendukung metadata tersebut.
+- Laporan berperiode dengan pendapatan dibayar, pembelian ulang, win rate, serta nilai historis R/F/M.
+- Sync otomatis anggota list Mailketing untuk kontak CRM yang eligible, antrean dan retry terbatas.
+- Diagnostic sync memperlihatkan webhook masuk dan status subscriber sync.
+- Mencegah penghapusan kontak yang sudah memiliki riwayat bisnis; pengguna dapat mengarsipkan tahap komersial.
+- Tabel syncjobs dibuat otomatis tanpa menghapus database lama.
+- Lima pengujian otomatis berhasil; layar baru dan fitur otomatis tetap perlu diuji live pada VPS Anda.
+
+
 ## 0.3.0
 
 - Perbaiki server error saat sync tanpa pilihan kontak; validasi kontak, consent, suppression, dan list positif.

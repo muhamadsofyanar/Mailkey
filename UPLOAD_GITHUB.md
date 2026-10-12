@@ -1,6 +1,6 @@
 # Upload manual ke GitHub dan deploy Coolify
 
-Paket ini versi 0.3.0. Gunakan paket terbaru ini untuk upload.
+Paket ini versi 0.4.0. Gunakan paket terbaru ini untuk upload.
 
 1. Ekstrak ZIP, buka folder `mailk-crm`.
 2. Buat repository GitHub private.
@@ -32,3 +32,12 @@ Pengujian alur sync:
 4. Integration → Sinkronkan → pilih kontak dan list berdasarkan nama → Sinkronkan kontak.
 5. Konfirmasi pesan berhasil dan kontak muncul di list Mailketing.
 6. Jika gagal, salin teks error yang ditampilkan. Jangan sertakan token atau password.
+
+
+## File penting untuk v0.4
+
+Pastikan `crm.mjs` berada di root repository bersama Dockerfile dan server.mjs. Folder public/ wajib berisi app.js, style.css, index.html, mailketing.js, dan **crm-ui.js**. Upload Dockerfile terbaru karena COPY sekarang mencakup crm.mjs.
+
+Setelah deploy: Integrasi Mailketing → Atur list & otomatisasi → pilih Ruang 1 → centang aktif → Simpan. Selanjutnya kontak CRM eligible masuk ke Mailketing tanpa klik sync satu per satu. Lihat hasil di Status Sinkronisasi. Tidak ada environment baru yang wajib.
+
+Langkah CRM: Tambah kontak → buat peluang → catat tugas/catatan → pindahkan tahap saat berkembang → catat transaksi saat benar-benar dibayar → lihat Laporan CRM. Gunakan kontak percobaan milik Anda untuk uji coba.

@@ -48,6 +48,28 @@ test('worker sends personalized tracked email; repeat opens deduplicated; unsubs
  await req('/api/settings',{enabled:true});
  for(let i=0;i<50;i++){state=await req('/api/state');if(state.jobs.find(j=>j.id===testjob.id)?.status==='accepted')break;await new Promise(r=>setTimeout(r,30));}
  assert.equal(state.jobs.find(j=>j.id===testjob.id).status,'accepted');assert.equal(state.jobs.filter(j=>j.owner===responder.id&&j.status==='queued').length,120);
+ // Automatic subscriber sync runs independently of email delivery; suppressions are excluded.
+ await req('/api/sync-settings',{auto_sync:true,default_list:93653});
+ const auto=await req('/api/records/contacts',{name:'Auto sync',email:'auto@example.com',consent:true});
+ for(let i=0;i<80;i++){state=await req('/api/state');if(state.contacts.find(c=>c.id===auto.id)?.mailketing_lists?.includes('93653'))break;await new Promise(r=>setTimeout(r,30));}
+ assert.ok(state.contacts.find(c=>c.id===auto.id).mailketing_lists.includes('93653'));
+ const diagnostics=await req('/api/sync-diagnostics');assert.ok(diagnostics.jobs.some(j=>j.contact===auto.id&&j.status==='synced'));assert.ok(!diagnostics.jobs.some(j=>j.contact===c.id));
+ // Complete the operational CRM journey with actual records, without inventing transactions from won deals.
+ const deal=await req('/api/records/deals',{name:'Legal service',contact:auto.id,value:1000000,stage:'proposal',owner:'Sofyan'});
+ await req('/api/records/deals/'+deal.id,{...deal,stage:'won'},'PUT');
+ let businessState=await req('/api/state');assert.equal(businessState.contacts.find(c=>c.id===auto.id).lifecycle,'customer');assert.equal(businessState.orders.length,0);
+ const paid=Date.now()-10000;
+ await req('/api/records/orders',{name:'Invoice 1',contact:auto.id,amount:500000,status:'paid',paid_at:paid});
+ await req('/api/records/orders',{name:'Invoice 2',contact:auto.id,amount:250000,status:'paid',paid_at:paid});
+ const task=await req('/api/records/tasks',{name:'Follow up documents',contact:auto.id,due:paid,status:'open',priority:'high'});
+ await req('/api/records/notes',{name:'Telephone',contact:auto.id,channel:'phone',content:'Customer confirmed required documents'});
+ await req('/api/records/tickets',{name:'Document correction',contact:auto.id,description:'Correction requested',priority:'normal',status:'resolved',resolution:'Corrected',csat:5});
+ const metrics=await req('/api/crm-report?from='+paid+'&to='+(Date.now()+10000));assert.equal(metrics.revenue,750000);assert.equal(metrics.repeat_rate,100);assert.equal(metrics.win_rate,100);assert.equal(metrics.csat,5);assert.ok(metrics.overdue>=1);
+ await req('/api/records/tasks/'+task.id,{...task,status:'done'},'PUT');
+ const detail=await req('/api/contact-history?id='+auto.id);assert.equal(detail.crm.orders.length,2);assert.equal(detail.crm.notes.length,1);
+ const deletion=await fetch(base+'/api/records/contacts/'+auto.id,{method:'DELETE',headers:{Origin:base,Cookie:cookie}});assert.equal(deletion.status,400);
+ businessState=await req('/api/state');assert.equal(businessState.contacts.find(c=>c.id===auto.id).status,'active');
+
 
 
  }finally{child?.kill();rmSync(dir,{recursive:true,force:true});}
