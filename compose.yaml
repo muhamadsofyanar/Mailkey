@@ -1,0 +1,21 @@
+services:
+  crm:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      APP_URL: ${APP_URL:?Set APP_URL}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?Set ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD}
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET}
+      MAILKETING_API_TOKEN: ${MAILKETING_API_TOKEN:-}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:-}
+      CRM_API_TOKEN: ${CRM_API_TOKEN:-}
+      FROM_NAME: ${FROM_NAME:-}
+      FROM_EMAIL: ${FROM_EMAIL:-}
+      BUSINESS_ADDRESS: ${BUSINESS_ADDRESS:-}
+    volumes:
+      - crm-data:/app/data
+volumes:
+  crm-data:

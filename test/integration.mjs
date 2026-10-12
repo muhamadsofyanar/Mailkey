@@ -1,0 +1,36 @@
+import {test,after,before} from 'node:test';
+import assert from 'node:assert/strict';
+import {spawn} from 'node:child_process';
+import {mkdtempSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+const dir=mkdtempSync(join(tmpdir(),'mailk-test-')),port=39177,base=`http://localhost:${port}`;
+let child,cookie;
+async function req(path,data,method){const r=await fetch(base+path,{method:method||(data?'POST':'GET'),headers:{Origin:base,'Content-Type':'application/json',...(cookie?{Cookie:cookie}:{})},body:data?JSON.stringify(data):undefined});return {status:r.status,data:await r.json(),headers:r.headers};}
+before(async()=>{child=spawn(process.execPath,['server.mjs'],{env:{...process.env,PORT:String(port),APP_URL:base,DATA_DIR:dir,ADMIN_EMAIL:'test@example.com',ADMIN_PASSWORD:'a-test-password-strong',SESSION_SECRET:'a'.repeat(40),WEBHOOK_SECRET:'test-webhook-secret',WORKER_INTERVAL_MS:'999999'}});let output='';child.stderr.on('data',b=>output+=b);await new Promise((resolve,reject)=>{const t=setTimeout(()=>reject(Error(output||'server timeout')),5000);child.stdout.on('data',()=>{clearTimeout(t);resolve();});child.on('exit',()=>reject(Error(output)));});});
+after(()=>{child?.kill();rmSync(dir,{recursive:true,force:true});});
+test('login, validation, campaign audience, suppression and tracking',async()=>{
+ assert.equal((await req('/api/state')).status,401);
+ const login=await req('/api/login',{email:'test@example.com',password:'a-test-password-strong'});assert.equal(login.status,200);cookie=login.headers.get('set-cookie').split(';')[0];
+ assert.equal((await req('/api/records/contacts',{email:'bad'})).status,400);
+ const tag=(await req('/api/records/tags',{name:'VIP',color:'#2563eb'})).data;
+ const c=(await req('/api/records/contacts',{name:'A',email:'A@example.com',tags:[tag.id],consent:true})).data;assert.equal(c.email,'a@example.com');
+ const duplicate=(await req('/api/records/contacts',{name:'A updated',email:'a@example.com',tags:[tag.id],consent:true})).data;assert.equal(duplicate.id,c.id);
+ const pending=(await req('/api/records/contacts',{name:'B',email:'b@example.com'})).data;assert.equal(pending.status,'pending');
+ const t=(await req('/api/records/templates',{name:'Welcome',html:'<h1>Hi {{name}}</h1>'})).data;
+ const segment=(await req('/api/records/segments',{name:'VIP',mode:'all',rules:[{field:'tag',op:'contains',value:tag.id}]})).data;
+ assert.equal((await req('/api/segment-contacts?id='+segment.id)).data.length,1);
+ const campaign=(await req('/api/records/campaigns',{name:'Launch',subject:'Hi',template:t.id,status:'draft',include_segments:[segment.id]})).data;
+ await req('/api/settings',{enabled:true,from_name:'Test',from_email:'test@example.com',address:'Test address'});
+ assert.equal((await req('/api/campaign-action',{id:campaign.id,action:'launch'})).status,200);
+ assert.equal((await req('/api/campaign-action',{id:campaign.id,action:'launch'})).status,400);
+ let state=(await req('/api/state')).data;assert.equal(state.jobs.length,1);assert.equal(state.jobs[0].contact,c.id);
+ const badOrigin=await fetch(base+'/api/settings',{method:'POST',headers:{Cookie:cookie,Origin:'https://attacker.example','Content-Type':'application/json'},body:'{}'});assert.equal(badOrigin.status,403);
+ assert.equal((await req('/webhook/wrong',{type:'unsubscribe',email:c.email})).status,403);
+ assert.equal((await req('/webhook/test-webhook-secret',{type:'unsubscribe',email:c.email})).status,200);
+ state=(await req('/api/state')).data;assert.equal(state.contacts.find(x=>x.id===c.id).status,'unsubscribed');assert.equal(state.jobs[0].status,'skipped');
+ const imported=await req('/api/import',{rows:[{email:c.email,name:'Reimport'},{email:'invalid'}],consent:true});assert.equal(imported.data.errors.length,1);
+ state=(await req('/api/state')).data;assert.equal(state.contacts.find(x=>x.id===c.id).status,'unsubscribed');
+ await req('/api/records/contacts/'+c.id,null,'DELETE');await req('/api/records/contacts',{email:c.email,consent:true});state=(await req('/api/state')).data;assert.equal(state.contacts.find(x=>x.email===c.email).status,'unsubscribed');
+ assert.equal((await req('/api/provider/credits')).status,503);
+});
