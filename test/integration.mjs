@@ -17,6 +17,15 @@ test('login, validation, campaign audience, suppression and tracking',async()=>{
  const c=(await req('/api/records/contacts',{name:'A',email:'A@example.com',tags:[tag.id],consent:true})).data;assert.equal(c.email,'a@example.com');
  const duplicate=(await req('/api/records/contacts',{name:'A updated',email:'a@example.com',tags:[tag.id],consent:true})).data;assert.equal(duplicate.id,c.id);
  const pending=(await req('/api/records/contacts',{name:'B',email:'b@example.com'})).data;assert.equal(pending.status,'pending');
+ assert.equal((await req('/api/activate-contact',{id:pending.id,confirmed:true,evidence:''})).status,400);
+ const activated=await req('/api/activate-contact',{id:pending.id,confirmed:true,evidence:'Verified signup form 2026-10-12'});assert.equal(activated.status,200);assert.equal(activated.data.status,'active');assert.equal(activated.data.consent,true);assert.ok(activated.data.consent_at);
+ assert.equal((await req('/api/settings',null)).status,405);
+ const subscriber={type:'newsubscriber',email:'NewSub@Example.com',first_name:'New',last_name:'Subscriber',mobile:'628123',list_id:'42',date:'2026-10-12 01:00:00'};
+ assert.equal((await req('/webhook/test-webhook-secret',subscriber)).status,200);
+ assert.equal((await req('/webhook/test-webhook-secret',subscriber)).data.duplicate,true);
+ const webhookState=(await req('/api/state')).data;const ns=webhookState.contacts.find(c=>c.email==='newsub@example.com');assert.equal(ns.status,'pending');assert.deepEqual(ns.mailketing_lists,['42']);assert.equal(ns.mailketing_subscribed_at,subscriber.date);
+ assert.equal((await req('/webhook/test-webhook-secret',{type:'invalid',email:ns.email})).status,422);
+
  const t=(await req('/api/records/templates',{name:'Welcome',html:'<h1>Hi {{name}}</h1>'})).data;
  const segment=(await req('/api/records/segments',{name:'VIP',mode:'all',rules:[{field:'tag',op:'contains',value:tag.id}]})).data;
  assert.equal((await req('/api/segment-contacts?id='+segment.id)).data.length,1);
@@ -32,5 +41,6 @@ test('login, validation, campaign audience, suppression and tracking',async()=>{
  const imported=await req('/api/import',{rows:[{email:c.email,name:'Reimport'},{email:'invalid'}],consent:true});assert.equal(imported.data.errors.length,1);
  state=(await req('/api/state')).data;assert.equal(state.contacts.find(x=>x.id===c.id).status,'unsubscribed');
  await req('/api/records/contacts/'+c.id,null,'DELETE');await req('/api/records/contacts',{email:c.email,consent:true});state=(await req('/api/state')).data;assert.equal(state.contacts.find(x=>x.email===c.email).status,'unsubscribed');
+ assert.equal((await req('/api/activate-contact',{id:state.contacts.find(x=>x.email===c.email).id,confirmed:true,evidence:'Attempt to bypass suppression'})).status,400);
  assert.equal((await req('/api/provider/credits')).status,503);
 });

@@ -1,6 +1,6 @@
 # MailK CRM — aplikasi mandiri untuk Mailketing
 
-Versi awal 0.1.0, dibangun dari 16 screenshot alur plugin Mailketing CRM. Aplikasi ini implementasi baru, bukan salinan kode plugin, dan tidak memerlukan WordPress atau lisensi plugin. Memerlukan akun/kredit Mailketing untuk pengiriman nyata.
+Versi perbaikan 0.2.0, dibangun dari 16 screenshot alur plugin Mailketing CRM. Aplikasi ini implementasi baru, bukan salinan kode plugin, dan tidak memerlukan WordPress atau lisensi plugin. Memerlukan akun/kredit Mailketing untuk pengiriman nyata.
 
 ## Fitur yang sudah tersedia
 
@@ -19,8 +19,10 @@ Versi awal 0.1.0, dibangun dari 16 screenshot alur plugin Mailketing CRM. Aplika
 - Tracking pixel open dan link click milik aplikasi; unsubscribe dengan halaman konfirmasi; suppression bertahan walaupun kontak dihapus/import ulang.
 - API CRM tambah/tag/baca/hapus kontak; token tersendiri.
 - Integrasi Mailketing v2: send, credits, senders, lists, subscribers (sync satu kontak ke list).
-- Webhook bounce/unsubscribe/newsubscriber/open/click; secret pada URL webhook. New subscriber belum ada disimpan pending sampai persetujuan terverifikasi.
+- Webhook bounce/unsubscribe/newsubscriber/open/click; secret pada URL webhook. New subscriber belum ada disimpan pending sampai persetujuan terverifikasi melalui tombol Verifikasi consent. List_id dan tanggal event disimpan; webhook berulang dideduplikasi.
 - Audit aktivitas admin dan script snapshot database.
+- Profil kontak dengan sumber data, bukti persetujuan, list Mailketing, serta riwayat email/aktivitas.
+- Aktivasi kontak pending lewat verifikasi persetujuan dan catatan bukti; unsubscribe/bounce tetap dilindungi suppression.
 
 ## Arsitektur versi awal
 
@@ -67,7 +69,7 @@ Generate masing-masing secret dengan `openssl rand -hex 32`. Gunakan nilai berbe
 8. Di dashboard Mailketing, menu Integrations → Webhook: pasang URL dari halaman Integration CRM untuk Bounce, Unsubscribe, dan New Subscriber. Open/click memakai tracking aplikasi; mengaktifkan webhook open/click tambahan dapat menggandakan aktivitas kontak (tetapi job open tetap dihitung unik).
 9. Buat template, import kontak dengan consent yang benar, isi Settings, aktifkan pengiriman, lakukan satu send test ke alamat Anda sendiri. Verifikasi footer, link, inbox, bounce, dan unsubscribe sebelum campaign nyata.
 
-Aplikasi belum terhubung ke GitHub/Coolify/VPS Anda dari sesi pembuatan ini. Deploy harus dilakukan pada akses milik Anda. Tidak ada kredensial default yang disertakan.
+Aplikasi belum terhubung ke GitHub/Coolify/VPS Anda dari sesi pembuatan ini. Deploy harus dilakukan pada akses milik Anda. Tidak ada password default yang disertakan. Isi ADMIN_EMAIL secara eksplisit; fallback email server untuk lokal adalah admin@example.com.
 
 ## Perilaku pengiriman
 
@@ -75,7 +77,7 @@ Aplikasi belum terhubung ke GitHub/Coolify/VPS Anda dari sesi pembuatan ini. Dep
 
 Worker default sekitar satu job per detik dan satu request yang berjalan sekaligus; belum diuji untuk throughput tinggi. Pause automation mempertahankan job tertunda; resume menjalankan job yang sudah jatuh tempo. Cancel campaign hanya menghentikan job queued, bukan request yang sudah berjalan.
 
-Audience campaign dihitung ketika mulai dijalankan. Template dan identitas pengirim dibaca ketika job dikirim; jangan edit template yang sedang dipakai campaign aktif. Data kontak diperiksa kembali sebelum setiap pengiriman.
+Audience campaign dihitung ketika mulai dijalankan. HTML template disimpan sebagai snapshot ketika job masuk antrean. Identitas pengirim dibaca ketika job dikirim; jangan mengganti pengirim saat campaign berjalan. Data kontak diperiksa kembali sebelum setiap pengiriman.
 
 Open rate berbasis pixel adalah estimasi: pemblokiran gambar, proxy privasi, dan pemindai email memengaruhi hasil. Click webhook provider tanpa message_id hanya diatribusikan ke kontak. Link click milik aplikasi dapat diatribusikan ke job/campaign.
 
@@ -107,7 +109,9 @@ Restore: hentikan container, backup terlebih dahulu database lama, ganti `/app/d
 `npm test` menjalankan dua skenario integrasi:
 
 1. Login/auth/origin, validasi email, deduplikasi, audience segmen, larangan launch ganda, webhook secret, suppression setelah unsubscribe dan reimport/delete.
-2. Worker dengan provider simulasi, personalisasi HTML, tracking links, deduplikasi open, halaman unsubscribe tidak mengubah status sebelum konfirmasi, pembatalan follow-up setelah unsubscribe.
+2. Worker dengan provider simulasi, personalisasi HTML dan snapshot template, tracking links, normalisasi message_id webhook, deduplikasi open, profil kontak, pembatalan follow-up setelah unsubscribe, serta pengiriman melewati 120 job dari autoresponder yang dijeda.
+
+Skenario pertama juga menguji verifikasi consent pending, penolakan bypass suppression, metadata subscriber/list, validasi tipe webhook, dan deduplikasi webhook.
 
 JavaScript frontend dan server sudah diperiksa dengan `node --check`. Provider simulasi tidak mengirim email nyata. Belum dilakukan pengujian browser interaktif, build Docker, koneksi Mailketing live, deployment Coolify, load test, atau audit keamanan independen. Uji end-to-end pada domain Anda diperlukan sebelum pemakaian produksi.
 
