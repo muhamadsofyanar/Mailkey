@@ -12,11 +12,15 @@ test('worker sends personalized tracked email; repeat opens deduplicated; unsubs
  child=spawn(process.execPath,['--import',resolve('test/fake-provider.js'),'server.mjs'],{env:{...process.env,PORT:'39178',APP_URL:base,DATA_DIR:dir,ADMIN_EMAIL:'test@example.com',ADMIN_PASSWORD:'worker-test-password',SESSION_SECRET:secret,MAILKETING_API_TOKEN:'test-only',WEBHOOK_SECRET:'worker-webhook-secret',WORKER_INTERVAL_MS:'30',TEST_CAPTURE:join(dir,'payload.json')}});
  await new Promise((ok,no)=>{const t=setTimeout(()=>no(Error('start timeout')),5000);child.stdout.once('data',()=>{clearTimeout(t);ok();});});
  const login=await fetch(base+'/api/login',{method:'POST',headers:{Origin:base,'Content-Type':'application/json'},body:JSON.stringify({email:'test@example.com',password:'worker-test-password'})});cookie=login.headers.get('set-cookie').split(';')[0];
+ assert.deepEqual((await req('/api/provider/senders')).senders,[{email:'sofyan@izinhukum.com'}]);assert.equal((await req('/api/provider/lists')).lists[0].list_id,93653);
  await req('/api/settings',{enabled:false,from_email:'sender@example.com',from_name:'Business',address:'Jakarta'});
  const t=await req('/api/records/templates',{name:'Welcome',html:'<h1>Hello {{name}}</h1><a href="https://example.com/promo">Promo</a>'});
  const tag=await req('/api/records/tags',{name:'Signup',color:'#2563eb'});
  await req('/api/records/responders',{name:'Onboarding',tag:tag.id,active:true,steps:[{delay:0,template:t.id,subject:'Welcome {{name}}'},{delay:10,template:t.id,subject:'Follow-up'}]});
  const c=await req('/api/records/contacts',{name:'A & B',email:'person@example.com',tags:[tag.id],consent:true});
+ const synced=await req('/api/sync',{contact:c.id,list_id:93653});assert.equal(synced.status,'added');const syncedState=await req('/api/state');assert.ok(syncedState.contacts.find(x=>x.id===c.id).mailketing_lists.includes('93653'));
+ const invalid=await fetch(base+'/api/sync',{method:'POST',headers:{Origin:base,Cookie:cookie,'Content-Type':'application/json'},body:JSON.stringify({contact:c.id,list_id:''})});assert.equal(invalid.status,400);
+ const badContact=await req('/api/records/contacts',{name:'Bad payload',email:'bad-request@example.com',consent:true});const providerError=await fetch(base+'/api/sync',{method:'POST',headers:{Origin:base,Cookie:cookie,'Content-Type':'application/json'},body:JSON.stringify({contact:badContact.id,list_id:93653})});assert.equal(providerError.status,502);assert.match((await providerError.json()).error,/Mailketing menolak data/);
  await req('/api/records/templates/'+t.id,{name:'Welcome edited',html:'<h1>CHANGED AFTER QUEUE</h1>'},'PUT');
  await req('/api/settings',{enabled:true});
  let state;for(let i=0;i<50;i++){state=await req('/api/state');if(state.jobs.some(j=>j.status==='accepted'))break;await new Promise(r=>setTimeout(r,30));}

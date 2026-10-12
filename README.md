@@ -1,6 +1,6 @@
 # MailK CRM — aplikasi mandiri untuk Mailketing
 
-Versi perbaikan 0.2.0, dibangun dari 16 screenshot alur plugin Mailketing CRM. Aplikasi ini implementasi baru, bukan salinan kode plugin, dan tidak memerlukan WordPress atau lisensi plugin. Memerlukan akun/kredit Mailketing untuk pengiriman nyata.
+Versi perbaikan 0.3.0, dibangun dari 16 screenshot alur plugin Mailketing CRM. Aplikasi ini implementasi baru, bukan salinan kode plugin, dan tidak memerlukan WordPress atau lisensi plugin. Memerlukan akun/kredit Mailketing untuk pengiriman nyata.
 
 ## Fitur yang sudah tersedia
 
@@ -21,6 +21,7 @@ Versi perbaikan 0.2.0, dibangun dari 16 screenshot alur plugin Mailketing CRM. A
 - Integrasi Mailketing v2: send, credits, senders, lists, subscribers (sync satu kontak ke list).
 - Webhook bounce/unsubscribe/newsubscriber/open/click; secret pada URL webhook. New subscriber belum ada disimpan pending sampai persetujuan terverifikasi melalui tombol Verifikasi consent. List_id dan tanggal event disimpan; webhook berulang dideduplikasi.
 - Audit aktivitas admin dan script snapshot database.
+- Halaman integrasi dengan tabel sender/list, pilihan list berdasarkan nama, pemilihan sender, tombol salin webhook, validasi empty state sync, dan pesan sukses yang jelas.
 - Profil kontak dengan sumber data, bukti persetujuan, list Mailketing, serta riwayat email/aktivitas.
 - Aktivasi kontak pending lewat verifikasi persetujuan dan catatan bukti; unsubscribe/bounce tetap dilindungi suppression.
 
@@ -106,12 +107,14 @@ Restore: hentikan container, backup terlebih dahulu database lama, ganti `/app/d
 
 ## Verifikasi yang sudah dijalankan
 
-`npm test` menjalankan dua skenario integrasi:
+`npm test` menjalankan dua skenario integrasi dan dua uji helper:
 
 1. Login/auth/origin, validasi email, deduplikasi, audience segmen, larangan launch ganda, webhook secret, suppression setelah unsubscribe dan reimport/delete.
 2. Worker dengan provider simulasi, personalisasi HTML dan snapshot template, tracking links, normalisasi message_id webhook, deduplikasi open, profil kontak, pembatalan follow-up setelah unsubscribe, serta pengiriman melewati 120 job dari autoresponder yang dijeda.
 
 Skenario pertama juga menguji verifikasi consent pending, penolakan bypass suppression, metadata subscriber/list, validasi tipe webhook, dan deduplikasi webhook.
+
+Uji helper memastikan dukungan field sender_email/email, list_id/list_name, kontak eligible, dan perlindungan field routing subscriber. Skenario integrasi juga menguji sinkronisasi berhasil, input kontak/list kosong, dan penolakan API provider yang ditampilkan dengan jelas.
 
 JavaScript frontend dan server sudah diperiksa dengan `node --check`. Provider simulasi tidak mengirim email nyata. Belum dilakukan pengujian browser interaktif, build Docker, koneksi Mailketing live, deployment Coolify, load test, atau audit keamanan independen. Uji end-to-end pada domain Anda diperlukan sebelum pemakaian produksi.
 
@@ -120,7 +123,9 @@ JavaScript frontend dan server sudah diperiksa dengan `node --check`. Provider s
 - Editor template adalah editor blok sederhana; belum setara visual builder multi-column penuh.
 - Tidak ada campaign groups, A/B testing, multi-user/roles, MFA/password reset, native platform connectors, attachment editor, multi-tenant, dan visual branching workflow.
 - UI log menampilkan 500 job, 200 event, dan 100 audit terbaru; statistik agregat dihitung dari seluruh database. API/admin state memuat semua kontak, sehingga daftar besar perlu pagination server di tahap skala berikutnya.
-- Tidak ada klaim fitur ini sudah 100% identik dengan plugin. Ini versi awal fungsional yang dapat dipasang sendiri dan dikembangkan lebih lanjut.
+- Sinkronisasi list menambahkan kontak CRM ke Mailketing; daftar kontak historis Mailketing tidak otomatis ditarik ke CRM karena endpoint baca subscriber tidak ada dalam API yang dipakai. Import melalui CSV jika ingin membawa data lama.
+
+Tidak ada klaim fitur ini sudah 100% identik dengan plugin. Ini versi awal fungsional yang dapat dipasang sendiri dan dikembangkan lebih lanjut.
 
 ## Referensi
 

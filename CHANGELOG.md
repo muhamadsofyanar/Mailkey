@@ -1,5 +1,19 @@
 # Perubahan
 
+## 0.3.0
+
+- Perbaiki server error saat sync tanpa pilihan kontak; validasi kontak, consent, suppression, dan list positif.
+- Sync menggunakan dropdown list Mailketing dan kontak dengan nama/email; empty state memberi tombol tambah/import.
+- Response sender dengan sender_email atau email diadaptasi; daftar sender/list menjadi tabel dan action.
+- Pilih sender langsung menyimpan pengaturan email; error provider/network ditampilkan dengan alasan yang dapat ditindaklanjuti.
+- Simpan list dan waktu sinkronisasi pada kontak; custom field tidak bisa menimpa email/list tujuan payload.
+- Sidebar navy, dashboard onboarding, integrasi bertahap, modal/form lebih jelas, responsivitas dan keyboard focus.
+- URL webhook tidak ditampilkan secara default; tombol lihat/salin tersedia.
+- Hasil import CSV menjadi ringkasan/tabel, bukan JSON; API docs tetap ada dalam panel pengembang yang dapat dibuka.
+- Tambahkan module public/mailketing.js yang harus ikut diupload.
+- Empat pengujian otomatis berhasil, mencakup regresi dan kontrak respons provider simulasi.
+
+
 ## 0.2.0
 
 - Normalisasi message_id webhook dengan/tanpa angle brackets dan pencocokan kontak.

@@ -13,6 +13,7 @@ test('login, validation, campaign audience, suppression and tracking',async()=>{
  assert.equal((await req('/api/state')).status,401);
  const login=await req('/api/login',{email:'test@example.com',password:'a-test-password-strong'});assert.equal(login.status,200);cookie=login.headers.get('set-cookie').split(';')[0];
  assert.equal((await req('/api/records/contacts',{email:'bad'})).status,400);
+ assert.equal((await req('/api/sync',{list_id:93653})).status,400);assert.equal((await req('/api/contact-history')).status,404);
  const tag=(await req('/api/records/tags',{name:'VIP',color:'#2563eb'})).data;
  const c=(await req('/api/records/contacts',{name:'A',email:'A@example.com',tags:[tag.id],consent:true})).data;assert.equal(c.email,'a@example.com');
  const duplicate=(await req('/api/records/contacts',{name:'A updated',email:'a@example.com',tags:[tag.id],consent:true})).data;assert.equal(duplicate.id,c.id);

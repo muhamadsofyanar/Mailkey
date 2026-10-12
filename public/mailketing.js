@@ -1,0 +1,5 @@
+// Pure helpers shared by the panel and server; supports observed and documented response fields.
+export function normaliseSenders(data){const rows=Array.isArray(data)?data:data?.senders||[];return (Array.isArray(rows)?rows:[]).map(s=>({email:String(s.email||s.sender_email||'').trim()})).filter(s=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.email));}
+export function normaliseLists(data){const rows=Array.isArray(data)?data:data?.lists||[];return (Array.isArray(rows)?rows:[]).map(s=>({id:Number(s.list_id??s.id),name:String(s.list_name||s.name||'List tanpa nama')})).filter(s=>Number.isSafeInteger(s.id)&&s.id>0);}
+export function eligibleContacts(contacts){return contacts.filter(c=>c.status==='active'&&c.consent===true);}
+export function subscriberPayload(c,list){return {...c.custom,list_id:list,email:c.email,first_name:String(c.name||'').replace(/[^\p{L}\p{N} ]/gu,'').trim().split(/\s+/)[0],last_name:String(c.name||'').replace(/[^\p{L}\p{N} ]/gu,'').trim().split(/\s+/).slice(1).join(' '),mobile:c.phone||''};}
