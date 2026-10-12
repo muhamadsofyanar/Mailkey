@@ -1,6 +1,21 @@
+# Pembaruan ke v0.5.0
+
+1. Backup database menggunakan panduan README sebelum redeploy.
+2. Upload SELURUH isi folder mailk-crm ke root repository yang sama. Sertakan public/import-tools.js yang baru, app.js, style.css, server.mjs, dan file lainnya.
+3. Pertahankan environment dan volume persisten /app/data di Coolify. Tidak perlu mengganti secret.
+4. Redeploy dan refresh browser Ctrl+Shift+R.
+5. Import CSV: cek mapping dan contoh, pilih mode duplikat, klik Preview, baru Import. Untuk memperbaiki nama/telepon lama, pilih Perbarui sesuai CSV; field kosong tidak menghapus nilai lama.
+6. Buat custom field provinsi, kategori bisnis, omzet, dan lainnya melalui mapping jika diperlukan. Timestamp dapat dipetakan ke registered_at dan disimpan sebagai nilai sumber.
+7. Jangan hapus kontak untuk memperbaiki mapping. Kontak yang dihapus tetap masuk suppression. Kontak dengan riwayat CRM dilindungi.
+8. Kontak massal: centang per baris, judul tabel untuk halaman, atau Pilih semua hasil filter. Pilihan bertahan lintas halaman; Batalkan pilihan untuk mengosongkan.
+9. Sinkronkan pilihan memakai list tujuan yang sudah diatur pada Integrasi → Atur list & otomatisasi. Hasilnya ada di Status Sinkronisasi. Aktifkan sinkronisasi otomatis terlebih dahulu.
+10. Campaign tanpa include/exclude menyasar semua kontak aktif dengan persetujuan. Klik Hitung penerima atau Kirim sekarang untuk melihat jumlah dan contoh.
+
+Pengujian paket memakai provider simulasi. Uji ulang import beberapa kontak percobaan, UI browser, dan sinkronisasi list nyata setelah deploy. Paket tidak mengubah VPS secara langsung. Tidak ada undo import; gunakan backup bila perlu pemulihan. Data kontak dan credential pengguna tidak disertakan dalam paket.
+
 # Upload manual ke GitHub dan deploy Coolify
 
-Paket ini versi 0.4.0. Gunakan paket terbaru ini untuk upload.
+Paket ini versi 0.4.1. Gunakan paket terbaru ini untuk upload.
 
 1. Ekstrak ZIP, buka folder `mailk-crm`.
 2. Buat repository GitHub private.
@@ -41,3 +56,9 @@ Pastikan `crm.mjs` berada di root repository bersama Dockerfile dan server.mjs. 
 Setelah deploy: Integrasi Mailketing → Atur list & otomatisasi → pilih Ruang 1 → centang aktif → Simpan. Selanjutnya kontak CRM eligible masuk ke Mailketing tanpa klik sync satu per satu. Lihat hasil di Status Sinkronisasi. Tidak ada environment baru yang wajib.
 
 Langkah CRM: Tambah kontak → buat peluang → catat tugas/catatan → pindahkan tahap saat berkembang → catat transaksi saat benar-benar dibayar → lihat Laporan CRM. Gunakan kontak percobaan milik Anda untuk uji coba.
+
+## Upgrade v0.4.1
+
+Backup database, lalu upload isi paket ke repository yang sama dan overwrite kode lama, termasuk server.mjs, crm.mjs dan seluruh public/. Commit lalu Redeploy di Coolify. Pertahankan environment dan storage /app/data, kemudian Ctrl+Shift+R.
+
+Uji dengan kontak percobaan: centang baris, centang halaman, pilih semua hasil filter, batalkan pilihan, lalu hapus massal. Preview harus menampilkan jumlah dan kontak bersejarah tidak terhapus. Jangan menghapus kontak untuk memperbaiki mapping CSV: import ulang berdasarkan email.

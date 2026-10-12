@@ -1,5 +1,44 @@
 # Perubahan
 
+## 0.5.0
+
+- Preview import sebelum menyimpan; saran mapping berdasarkan isi nama/telepon.
+- Duplikat: lewati, isi kosong, tinjau konflik, atau perbarui nilai tidak kosong.
+- Normalisasi nomor telepon Indonesia; sumber dan tanggal pendaftaran dipertahankan.
+- Custom field dapat dibuat saat mapping; batch import dan unduhan laporan kesalahan.
+- Centang kontak lintas halaman/filter; tag, sinkronisasi dan hapus massal.
+- Pilihan semua kontak aktif atau include tag/segmen; preview jumlah dan contoh penerima.
+- Consent dan suppression tetap dilindungi; riwayat CRM mencegah hapus permanen.
+- Enam pengujian otomatis; browser dan fitur baru pada Mailketing asli belum diverifikasi.
+- Belum ada undo import maupun penarikan subscriber lama dari Mailketing.
+
+## 0.5.0
+
+- Preview import, strategi duplikat, normalisasi telepon dan laporan konflik.
+- Pembuatan custom field saat mapping dan pencatatan batch import.
+- Pilihan massal untuk hapus, tag, dan sinkronisasi; preview penerima campaign.
+- Tujuh pengujian otomatis berhasil.
+
+
+## 0.5.0
+
+- Preview import di server dan browser sebelum penyimpanan; saran mapping berdasarkan isi, termasuk kolom nama–telepon tertukar.
+- Pilihan duplikat: lewati, isi kosong, perbarui field yang terisi, atau tinjau konflik.
+- Normalisasi email/telepon, sumber lead dan tanggal pendaftaran dipertahankan.
+- Custom field dapat dibuat saat mapping, riwayat batch dan unduhan laporan masalah CSV.
+- Tag dan sinkronisasi massal untuk kontak terpilih; sinkronisasi memakai list otomatis yang telah dikonfigurasi.
+- Konfirmasi jumlah dan contoh penerima sebelum menjalankan campaign; unsubscribe dan proteksi riwayat tetap berlaku.
+- Tidak ada penarikan kontak lama Mailketing otomatis, undo import, atau normalisasi kategori/provinsi/omzet yang ambigu.
+
+
+## 0.4.1
+
+- Centang kontak per baris, seluruh halaman, atau seluruh hasil filter; pilihan tersimpan lintas halaman.
+- Hapus massal dengan preview jumlah, konfirmasi, proteksi riwayat CRM dan suppression email; tidak menghapus kontak di Mailketing.
+- Endpoint integrasi hapus kontak kini juga melindungi riwayat CRM.
+- Petunjuk include/exclude campaign menjelaskan penerima ketika filter kosong.
+- Uji regresi mencakup preview, konfirmasi, duplikat ID, kontak hilang, proteksi dan suppression setelah import ulang.
+
 ## 0.4.0
 
 - Pipeline penjualan, peluang dan nilai, perubahan tahap serta penanggung jawab.
