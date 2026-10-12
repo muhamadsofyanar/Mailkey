@@ -1,3 +1,7 @@
+# MailK CRM v0.6.1
+
+Panduan terkini: [UPGRADE_V061.md](UPGRADE_V061.md). OAuth Claude web dikelola lewat Pengaturan → Integrasi AI / MCP.
+
 # MailK CRM — aplikasi mandiri untuk Mailketing
 
 Versi pengembangan 0.4.0, dibangun dari 16 screenshot alur plugin Mailketing CRM. Aplikasi ini implementasi baru, bukan salinan kode plugin, dan tidak memerlukan WordPress atau lisensi plugin. Memerlukan akun/kredit Mailketing untuk pengiriman nyata.

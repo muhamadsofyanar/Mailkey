@@ -1,6 +1,6 @@
-# MCP MailK CRM v0.6.0
+# MCP MailK CRM v0.6.1
 
-Server stateless Streamable HTTP tersedia pada `https://DOMAIN-CRM/mcp`, setelah `MCP_API_TOKEN` dipasang. Token minimal 32 karakter dan berbeda dari token Mailketing/CRM API. Token memberikan akses seluruh workspace CRM pribadi. Gunakan HTTPS untuk akses remote. Protokol yang didukung: 2025-03-26, 2025-06-18, 2025-11-25. Tidak ada SSE lama atau OAuth bawaan.
+Server stateless Streamable HTTP tersedia pada `https://DOMAIN-CRM/mcp`, dengan OAuth aktif untuk Claude web atau `MCP_API_TOKEN` untuk klien bearer. Token minimal 32 karakter dan berbeda dari token Mailketing/CRM API. Token memberikan akses seluruh workspace CRM pribadi. Gunakan HTTPS untuk akses remote. Protokol yang didukung: 2025-03-26, 2025-06-18, 2025-11-25. OAuth bawaan tersedia untuk Claude web. Tidak ada transport SSE lama.
 
 ## Claude Code
 
@@ -31,7 +31,9 @@ Gunakan Node 24 pada komputer tempat Claude Desktop berjalan. Salin `mcp-bridge.
 
 Windows: gunakan path JSON seperti `C:\\MailK\\mcp-bridge.mjs`. Restart Claude Desktop setelah memperbarui konfigurasi.
 
-**Claude web/claude.ai:** paket ini belum menyediakan login OAuth untuk custom connector web. Gunakan Claude Code atau bridge Desktop di atas. Untuk connector web dengan login pengguna, perlu gateway OAuth dan konfigurasi client lanjutan. Paket ini belum mengklaim koneksi langsung claude.ai siap digunakan.
+## Claude web / claude.ai
+
+Gunakan URL `https://DOMAIN-CRM/mcp`, **Masuk sekarang**, **Daftar otomatis**, dan **Streamable HTTP**. Login memakai akun admin MailK dan setujui akses. Tidak perlu bearer token pada konektor Claude web. Opsi identitas resmi Claude/CIMD belum didukung. Panduan lengkap: UPGRADE_V061.md.
 
 ## Hermes Agent
 

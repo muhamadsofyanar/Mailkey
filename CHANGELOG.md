@@ -1,3 +1,10 @@
+# v0.6.1
+
+- OAuth Claude web: metadata discovery, DCR, login admin, izin akses, PKCE S256, refresh rotation dan revoke.
+- Pengaturan Integrasi AI / MCP dalam aplikasi; URL salin dan daftar koneksi.
+- Token statis Hermes/Claude Code tetap tersedia.
+- Dockerfile menyalin mcp.mjs dan oauth.mjs serta memeriksa syntax saat build.
+
 # Perubahan
 
 ## 0.5.0
