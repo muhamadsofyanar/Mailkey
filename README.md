@@ -15,7 +15,7 @@ Versi pengembangan 0.4.0, dibangun dari 16 screenshot alur plugin Mailketing CRM
 - Sinkronisasi otomatis kontak eligible CRM ke list Mailketing pilihan, antrean persisten dan retry terbatas.
 - Status Sinkronisasi menampilkan job sync dan webhook masuk untuk diagnosis.
 - Login satu admin; cookie HttpOnly/SameSite; session 12 jam; pembatasan percobaan login; pemeriksaan origin.
-- Kontak CRUD, pencarian, filter, pagination 50 kontak, tag, status, pencatatan persetujuan.
+- Kontak CRUD, pencarian, filter, pagination default 100 kontak (pilihan 25/50/100/200), tag, status, pencatatan persetujuan.
 - Tags berwarna; custom field text/number/date/email; validasi field wajib.
 - Segmen dinamis AND/OR dengan aturan tag/status/nama/email/custom field/open/click; export segmen.
 - Import CSV empat langkah: upload, mapping, tags, import; separator koma/titik koma; kutip dan multiline; batas 10 MB / 10.000 baris; deduplikasi email; laporan error per baris.
@@ -100,7 +100,7 @@ Semua endpoint di bawah memakai `Authorization: Bearer <CRM_API_TOKEN>`. Token i
 - POST `/api/add-contact`: `{"email":"customer@example.com","name":"Customer","consent":true,"tags":["ID_TAG"],"custom":{"kota":"Bandung"},"source":"form-website"}`. Consent harus berasal dari persetujuan yang sudah diverifikasi di sumber.
 - POST `/api/tag-contact`: `{"email":"customer@example.com","tag":"ID_TAG","untag":"ID_TAG_LAMA"}`. Tag adalah ID dari CRM, bukan nama.
 - GET `/api/contact?email=customer@example.com`
-- POST `/api/remove-contact`: `{"email":"customer@example.com"}`. Penghapusan menyimpan suppression email untuk mencegah reimport aktif otomatis.
+- POST `/api/remove-contact`: `{"email":"customer@example.com"}`. Penghapusan data tidak membuat unsubscribe baru. Status unsubscribe/bounce yang sudah ada tetap dilindungi setelah impor ulang.
 
 Untuk WordPress, Sejoli, WooCommerce, Elementor, Scalev, Lynk, Mayar, atau platform lain, implementasikan adapter/webhook yang memanggil endpoint di atas. **Belum ada konektor native untuk platform tersebut.** Sistem CRM inti tidak bergantung pada WordPress.
 

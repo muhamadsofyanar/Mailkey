@@ -10,3 +10,5 @@ test('swapped name/phone suggestions and duplicate conflict modes',()=>{
  assert.equal(importPlan(rows,old,'overwrite').operations[0].data.name,'Budi');
  assert.equal(importPlan(rows,old,'skip').summary.skipped,2);
 });
+
+test('custom field mapping recognises existing names and keys',()=>{assert.deepEqual(suggestMapping(['Link Toko','custom.link_toko'],[['https://example.com','']], [{name:'Link Toko',key:'link_toko'}]),['custom.link_toko','']);});

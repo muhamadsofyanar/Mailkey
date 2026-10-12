@@ -1,4 +1,6 @@
-# Pembaruan ke v0.5.0
+# Pembaruan ke v0.6.0
+
+Panduan utama terbaru: UPGRADE_V060.md dan MCP_SETUP.md.
 
 1. Backup database menggunakan panduan README sebelum redeploy.
 2. Upload SELURUH isi folder mailk-crm ke root repository yang sama. Sertakan public/import-tools.js yang baru, app.js, style.css, server.mjs, dan file lainnya.
@@ -6,7 +8,7 @@
 4. Redeploy dan refresh browser Ctrl+Shift+R.
 5. Import CSV: cek mapping dan contoh, pilih mode duplikat, klik Preview, baru Import. Untuk memperbaiki nama/telepon lama, pilih Perbarui sesuai CSV; field kosong tidak menghapus nilai lama.
 6. Buat custom field provinsi, kategori bisnis, omzet, dan lainnya melalui mapping jika diperlukan. Timestamp dapat dipetakan ke registered_at dan disimpan sebagai nilai sumber.
-7. Jangan hapus kontak untuk memperbaiki mapping. Kontak yang dihapus tetap masuk suppression. Kontak dengan riwayat CRM dilindungi.
+7. Jangan hapus kontak untuk memperbaiki mapping. Penghapusan tidak membuat unsubscribe baru; status unsubscribe/bounce yang sudah ada tetap dilindungi. Kontak dengan riwayat CRM dilindungi.
 8. Kontak massal: centang per baris, judul tabel untuk halaman, atau Pilih semua hasil filter. Pilihan bertahan lintas halaman; Batalkan pilihan untuk mengosongkan.
 9. Sinkronkan pilihan memakai list tujuan yang sudah diatur pada Integrasi → Atur list & otomatisasi. Hasilnya ada di Status Sinkronisasi. Aktifkan sinkronisasi otomatis terlebih dahulu.
 10. Campaign tanpa include/exclude menyasar semua kontak aktif dengan persetujuan. Klik Hitung penerima atau Kirim sekarang untuk melihat jumlah dan contoh.
