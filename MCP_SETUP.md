@@ -1,3 +1,5 @@
+> v0.6.4: Kelola token MCP di Pengaturan → Koneksi & token. Environment hanya menjadi seed migrasi awal; klien memakai token yang diatur di aplikasi.
+
 # MCP MailK CRM v0.6.1
 
 Server stateless Streamable HTTP tersedia pada `https://DOMAIN-CRM/mcp`, dengan OAuth aktif untuk Claude web atau `MCP_API_TOKEN` untuk klien bearer. Token minimal 32 karakter dan berbeda dari token Mailketing/CRM API. Token memberikan akses seluruh workspace CRM pribadi. Gunakan HTTPS untuk akses remote. Protokol yang didukung: 2025-03-26, 2025-06-18, 2025-11-25. OAuth bawaan tersedia untuk Claude web. Tidak ada transport SSE lama.

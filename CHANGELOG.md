@@ -1,3 +1,10 @@
+# v0.6.4
+- Pengaturan koneksi dan akun admin di aplikasi.
+- Migrasi environment satu kali, enkripsi AES-256-GCM, password scrypt.
+- Ganti/cabut/generate token, tes koneksi, pembatalan sesi setelah perubahan akun.
+- Perbaikan Compose: kunci MCP duplikat dihapus, admin seed opsional setelah migrasi.
+- 10 tes otomatis lulus.
+
 # v0.6.3
 
 - Persetujuan OAuth menangani Origin null/kosong dengan sesi dan CSRF yang tetap wajib.

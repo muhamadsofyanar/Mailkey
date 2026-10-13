@@ -1,3 +1,5 @@
+> **v0.6.4**: Token dan akun admin kini dikelola di aplikasi. Baca [UPGRADE_V064.md](UPGRADE_V064.md). Instruksi environment untuk token/admin pada dokumentasi lama di bawah hanya menjadi seed migrasi awal.
+
 # MailK CRM v0.6.3
 
 Panduan terbaru: UPGRADE_V063.md.

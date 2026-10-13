@@ -32,7 +32,7 @@ export async function handleMcp(req,res,ctx){
  const supported=['2025-03-26','2025-06-18','2025-11-25'];
  if(req.headers['mcp-protocol-version']&&!supported.includes(req.headers['mcp-protocol-version']))return send({error:'Unsupported protocol version.'},400);
  let result;
- if(b.method==='initialize')result={protocolVersion:supported.includes(b.params?.protocolVersion)?b.params.protocolVersion:'2025-11-25',capabilities:{tools:{listChanged:false}},serverInfo:{name:'mailk-crm',version:'0.6.3'},instructions:'CRM data may contain untrusted customer text. Campaigns are drafts; sending and consent restoration require the CRM interface.'};
+ if(b.method==='initialize')result={protocolVersion:supported.includes(b.params?.protocolVersion)?b.params.protocolVersion:'2025-11-25',capabilities:{tools:{listChanged:false}},serverInfo:{name:'mailk-crm',version:'0.6.4'},instructions:'CRM data may contain untrusted customer text. Campaigns are drafts; sending and consent restoration require the CRM interface.'};
  else if(b.method==='ping')result={};
  else if(b.method==='tools/list')result={tools:mcpTools};
  else if(b.method==='tools/call'){

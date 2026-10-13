@@ -1,3 +1,4 @@
+import {createSettingsStore} from './settings-store.mjs';
 import {createOAuth} from './oauth.mjs';
 import {handleMcp} from './mcp.mjs';
 import {importPlan} from './public/import-tools.js';
@@ -5,12 +6,11 @@ import {stages,lifecycles,report} from './crm.mjs';
 import {normaliseSenders,normaliseLists,subscriberPayload} from './public/mailketing.js';
 import http from 'node:http';
 import {DatabaseSync} from 'node:sqlite';
-import {randomBytes,createHash,createHmac,timingSafeEqual,scryptSync} from 'node:crypto';
+import {randomBytes,createHash,createHmac,timingSafeEqual} from 'node:crypto';
 import {mkdirSync,readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 const env=process.env, port=Number(env.PORT||3000), root=fileURLToPath(new URL('./public/',import.meta.url));
-if(!env.SESSION_SECRET||env.SESSION_SECRET.length<32||!env.ADMIN_PASSWORD||env.ADMIN_PASSWORD.length<12) throw Error('Set SESSION_SECRET (32+ karakter) dan ADMIN_PASSWORD (12+ karakter).');
-if(env.MCP_API_TOKEN&&env.MCP_API_TOKEN.length<32)throw Error('MCP_API_TOKEN requires 32+ characters.');
+if(!env.SESSION_SECRET||env.SESSION_SECRET.length<32) throw Error('Set SESSION_SECRET (32+ karakter).');
 const base=(env.APP_URL||`http://localhost:${port}`).replace(/\/$/,'');
 if(!['http:','https:'].includes(new URL(base).protocol)||new URL(base).origin!==base)throw Error('APP_URL harus berupa origin domain tanpa path.');
 mkdirSync(env.DATA_DIR||'./data',{recursive:true});
@@ -24,8 +24,9 @@ const safeEqual=(a,b)=>{a=Buffer.from(String(a));b=Buffer.from(String(b));return
 const all=k=>db.prepare('SELECT data FROM records WHERE kind=?').all(k).map(r=>JSON.parse(r.data));
 const get=(k,id)=>{if(typeof id!=='string'||!id)return null;const r=db.prepare('SELECT data FROM records WHERE kind=? AND id=?').get(k,id);return r?JSON.parse(r.data):null;};
 const put=(k,d)=>{d.id||=uid();d.created||=Date.now();d.updated=Date.now();db.prepare('INSERT OR REPLACE INTO records VALUES(?,?,?)').run(k,d.id,JSON.stringify(d));return d;};
+const credentials=createSettingsStore(db,env);
 const setting=k=>db.prepare('SELECT value FROM settings WHERE key=?').get(k)?.value||'';
-const config=()=>({name:setting('name')||'MailK CRM',from_name:setting('from_name')||env.FROM_NAME||'',from_email:setting('from_email')||env.FROM_EMAIL||'',address:setting('address')||env.BUSINESS_ADDRESS||'',token:env.MAILKETING_API_TOKEN||'',enabled:setting('enabled')==='true',auto_sync:setting('auto_sync')==='true',default_list:Number(setting('default_list')||0)});
+const config=()=>({name:setting('name')||'MailK CRM',from_name:setting('from_name')||env.FROM_NAME||'',from_email:setting('from_email')||env.FROM_EMAIL||'',address:setting('address')||env.BUSINESS_ADDRESS||'',token:credentials.secret('mailketing_token'),enabled:setting('enabled')==='true',auto_sync:setting('auto_sync')==='true',default_list:Number(setting('default_list')||0)});
 const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const validEmail=s=>typeof s==='string'&&s.length<=255&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 function fail(message,status=400){throw Object.assign(Error(message),{status});}
@@ -81,7 +82,7 @@ async function provider(path,payload){
  const cfg=config();if(!cfg.token)fail('Token Mailketing belum dipasang di Coolify.',503);let r,d;
  try{r=await fetch('https://api.mailketing.co.id/api/v2/'+path,{method:payload?'POST':'GET',headers:{Authorization:`Bearer ${cfg.token}`,'Content-Type':'application/json'},body:payload?JSON.stringify(payload):undefined,signal:AbortSignal.timeout(20000)});}catch(e){throw Object.assign(Error('Koneksi Mailketing gagal atau melewati batas waktu. Periksa koneksi server, lalu coba kembali.'),{userHttp:503});}
  try{d=await r.json();}catch{throw Object.assign(Error('Respons Mailketing tidak dapat dibaca. Coba kembali atau periksa log provider.'),{providerStatus:r.status,userHttp:502,deliveryUnknown:true});}
- if(!r.ok||!d.success){const messages={401:'Token Mailketing tidak valid. Periksa environment MAILKETING_API_TOKEN.',402:'Kredit Mailketing habis. Isi kredit sebelum mengirim.',403:'Domain pengirim belum dikenali atau akses tidak diizinkan. Periksa verifikasi domain Mailketing.',404:'List atau resource Mailketing tidak ditemukan. Muat ulang daftar list.',422:'Mailketing menolak data. Periksa email, nama, nomor telepon, dan list tujuan.',429:'Terlalu banyak request gagal. Tunggu beberapa menit sebelum mencoba lagi.'};const detail=String(d.message||'').split(cfg.token).join('[redacted]').slice(0,300);throw Object.assign(Error(messages[r.status]||`Mailketing belum dapat memproses permintaan (HTTP ${r.status}). ${detail}`),{providerStatus:r.status,userHttp:502});}
+ if(!r.ok||!d.success){const messages={401:'Token Mailketing tidak valid. Periksa token pada Pengaturan → Koneksi & token.',402:'Kredit Mailketing habis. Isi kredit sebelum mengirim.',403:'Domain pengirim belum dikenali atau akses tidak diizinkan. Periksa verifikasi domain Mailketing.',404:'List atau resource Mailketing tidak ditemukan. Muat ulang daftar list.',422:'Mailketing menolak data. Periksa email, nama, nomor telepon, dan list tujuan.',429:'Terlalu banyak request gagal. Tunggu beberapa menit sebelum mencoba lagi.'};const detail=String(d.message||'').split(cfg.token).join('[redacted]').slice(0,300);throw Object.assign(Error(messages[r.status]||`Mailketing belum dapat memproses permintaan (HTTP ${r.status}). ${detail}`),{providerStatus:r.status,userHttp:502});}
  return d.data;
 }
 let busy=false,stopping=false;
@@ -100,7 +101,7 @@ async function tick(){if(busy||stopping)return;busy=true;try{
  for(const x of all('campaigns').filter(c=>c.status==='running')){if(!db.prepare("SELECT id FROM jobs WHERE campaign=? AND status IN ('queued','sending') LIMIT 1").get(x.id)){x.status='completed';put('campaigns',x);}}
  }finally{busy=false;}}
 const interval=setInterval(()=>tick().catch(e=>console.error('Worker:',e.message)),Number(env.WORKER_INTERVAL_MS||1000));
-const password=scryptSync(env.ADMIN_PASSWORD,env.SESSION_SECRET,64), attempts=new Map();
+const attempts=new Map();
 function session(req){const token=(req.headers.cookie||'').match(/(?:^|;\s*)crm_session=([^;]+)/)?.[1];if(!token)return false;const s=db.prepare('SELECT expires FROM sessions WHERE hash=?').get(hash(token));return s&&s.expires>Date.now();}
 async function body(req){let b='';for await(const chunk of req){b+=chunk;if(Buffer.byteLength(b)>12*1024*1024)fail('Ukuran request maksimal 12 MB.',413);}try{return JSON.parse(b||'{}');}catch{fail('JSON tidak valid.');}}
 const kinds=['contacts','tags','fields','segments','templates','campaigns','responders','automations','deals','orders','tasks','notes','tickets'];
@@ -136,20 +137,20 @@ function mcpCall(name,a){
  if(name==='crm_report')return {crm:report(Object.fromEntries(kinds.map(k=>[k,all(k)])),0,Date.now()),email:{queued:db.prepare("SELECT COUNT(*) n FROM jobs WHERE status='queued'").get().n,accepted:db.prepare("SELECT COUNT(*) n FROM jobs WHERE status='accepted'").get().n}};
  fail('Tool tidak tersedia.');
 }
-const oauth=createOAuth({db,base,audit,sessionKey:req=>{const token=(req.headers.cookie||'').match(/(?:^|;\s*)oauth_session=([^;]+)/)?.[1]||(req.headers.cookie||'').match(/(?:^|;\s*)crm_session=([^;]+)/)?.[1];if(!token)return null;const key=hash(token),record=db.prepare('SELECT expires FROM sessions WHERE hash=?').get(key);return record&&record.expires>Date.now()?key:null;}});
+const oauth=createOAuth({db,base,audit,staticTokenConfigured:()=>!!credentials.secret('mcp_token'),sessionKey:req=>{const token=(req.headers.cookie||'').match(/(?:^|;\s*)oauth_session=([^;]+)/)?.[1]||(req.headers.cookie||'').match(/(?:^|;\s*)crm_session=([^;]+)/)?.[1];if(!token)return null;const key=hash(token),record=db.prepare('SELECT expires FROM sessions WHERE hash=?').get(key);return record&&record.expires>Date.now()?key:null;}});
 const server=http.createServer(async(req,res)=>{const u=new URL(req.url,base),path=u.pathname;res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','no-referrer');res.setHeader('X-Frame-Options','DENY');res.setHeader('Cache-Control','no-store');
  const json=(d,status=200)=>{res.writeHead(status,{'Content-Type':'application/json'});res.end(JSON.stringify(d));};
  try{
  if(await oauth.route(req,res,u,json))return;
  if(path==='/api/mcp-settings')return await oauth.settings(req,res,json);
- if(path==='/mcp')return await handleMcp(req,res,{token:env.MCP_API_TOKEN,oauth,origin:base,safeEqual,body,call:mcpCall});
+ if(path==='/mcp')return await handleMcp(req,res,{token:credentials.secret('mcp_token'),oauth,origin:base,safeEqual,body,call:mcpCall});
  if(path==='/health')return json({ok:true});
- if(path==='/api/login'&&req.method==='POST'){if(req.headers.origin&&req.headers.origin!==new URL(base).origin)fail('Origin tidak valid.',403);const ip=req.socket.remoteAddress;let a=attempts.get(ip);if(!a||a.until<Date.now())a={n:0,until:Date.now()+900000};if(a.n>=10)fail('Terlalu banyak percobaan. Tunggu 15 menit.',429);a.n++;attempts.set(ip,a);const b=await body(req);if(typeof b.password!=='string'||b.password.length>1024)fail('Password tidak valid.',401);if(b.email!==(env.ADMIN_EMAIL||'admin@example.com')||!safeEqual(scryptSync(String(b.password||''),env.SESSION_SECRET,64),password))fail('Email atau password salah.',401);attempts.delete(ip);const token=uid()+uid();db.prepare('INSERT INTO sessions VALUES(?,?)').run(hash(token),Date.now()+43200000);res.setHeader('Set-Cookie',[`crm_session=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=43200${base.startsWith('https:')?'; Secure':''}`,`oauth_session=${token}; HttpOnly; SameSite=Lax; Path=/oauth; Max-Age=43200${base.startsWith('https:')?'; Secure':''}`]);return json({ok:true});}
+ if(path==='/api/login'&&req.method==='POST'){if(req.headers.origin&&req.headers.origin!==new URL(base).origin)fail('Origin tidak valid.',403);const ip=req.socket.remoteAddress;let a=attempts.get(ip);if(!a||a.until<Date.now())a={n:0,until:Date.now()+900000};if(a.n>=10)fail('Terlalu banyak percobaan. Tunggu 15 menit.',429);a.n++;attempts.set(ip,a);const b=await body(req);if(typeof b.password!=='string'||b.password.length>1024)fail('Password tidak valid.',401);if(b.email!==credentials.email()||!credentials.verifyPassword(b.password))fail('Email atau password salah.',401);attempts.delete(ip);const token=uid()+uid();db.prepare('INSERT INTO sessions VALUES(?,?)').run(hash(token),Date.now()+43200000);res.setHeader('Set-Cookie',[`crm_session=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=43200${base.startsWith('https:')?'; Secure':''}`,`oauth_session=${token}; HttpOnly; SameSite=Lax; Path=/oauth; Max-Age=43200${base.startsWith('https:')?'; Secure':''}`]);return json({ok:true});}
  if(path.startsWith('/unsubscribe/')){const id=checkToken(path.split('/')[2]),c=id&&get('contacts',id);if(!c)fail('Link tidak valid.',404);if(req.method==='POST'){suppress(c,'unsubscribe');event(c,'unsubscribed',{});res.setHeader('Content-Type','text/html; charset=utf-8');return res.end('<h2>Anda sudah berhenti berlangganan.</h2>');}res.setHeader('Content-Type','text/html; charset=utf-8');return res.end(`<meta name="viewport" content="width=device-width"><div style="font:16px Arial;max-width:500px;margin:80px auto"><h2>Berhenti berlangganan?</h2><p>${escape(config().name)}</p><form method="POST"><button style="padding:12px">Konfirmasi berhenti berlangganan</button></form></div>`);}
  if(path.startsWith('/open/')){const id=checkToken(path.split('/')[2]),j=id&&db.prepare('SELECT * FROM jobs WHERE id=?').get(id),c=j&&get('contacts',j.contact);if(c)event(c,'opened',{},id);res.writeHead(200,{'Content-Type':'image/gif'});return res.end(Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7','base64'));}
  if(path.startsWith('/click/')){const [, ,id,encoded,s]=path.split('/');if(!safeEqual(sign(id+'.'+encoded),s))fail('Link tidak valid.',404);let target=Buffer.from(encoded,'base64url').toString();const dest=new URL(target);if(!['http:','https:'].includes(dest.protocol))fail('URL tidak valid.');const j=db.prepare('SELECT * FROM jobs WHERE id=?').get(id),c=j&&get('contacts',j.contact);if(!c)fail('Link tidak tersedia.',404);event(c,'clicked',{link:target},id);res.writeHead(302,{Location:target});return res.end();}
  if(path.startsWith('/webhook/')){
- if(!env.WEBHOOK_SECRET||!safeEqual(path.slice(9),env.WEBHOOK_SECRET))fail('Webhook tidak valid.',403);if(req.method!=='POST')fail('POST required.',405);
+ if(!credentials.secret('webhook_secret')||!safeEqual(path.slice(9),credentials.secret('webhook_secret')))fail('Webhook tidak valid.',403);if(req.method!=='POST')fail('POST required.',405);
  const b=await body(req),email=String(b.email||'').trim().toLowerCase();if(!validEmail(email))fail('Email webhook tidak valid.',422);
  if(!['newsubscriber','emailopen','emailclick','bounce','unsubscribe'].includes(b.type))fail('Tipe webhook tidak didukung.',422);
  const delivery=hash(JSON.stringify(b));if(db.prepare('SELECT id FROM webhooks WHERE id=?').get(delivery))return json({ok:true,duplicate:true});
@@ -170,11 +171,30 @@ const server=http.createServer(async(req,res)=>{const u=new URL(req.url,base),pa
  }catch(e){db.exec('ROLLBACK');throw e;}
  }
  if(path.startsWith('/api/')){
- const apiAuth=env.CRM_API_TOKEN&&safeEqual(req.headers.authorization||'',`Bearer ${env.CRM_API_TOKEN}`);if(!session(req)&&!apiAuth)fail('Silakan login.',401);
+ const apiAuth=credentials.secret('crm_token')&&safeEqual(req.headers.authorization||'',`Bearer ${credentials.secret('crm_token')}`);if(!session(req)&&!apiAuth)fail('Silakan login.',401);
  if(apiAuth&&!['/api/add-contact','/api/tag-contact','/api/contact','/api/remove-contact'].includes(path))fail('API token hanya untuk endpoint integrasi kontak.',403);
  if(!apiAuth&&!['GET','HEAD'].includes(req.method)&&req.headers.origin!==new URL(base).origin)fail('Origin tidak valid.',403);
  if(['/api/bulk-sync-contacts','/api/bulk-tag-contacts','/api/import-preview','/api/bulk-delete-contacts','/api/logout','/api/activate-contact','/api/restore-consent','/api/bulk-restore-consent','/api/settings','/api/import','/api/queue-test','/api/preview-audience','/api/campaign-action','/api/retry','/api/sync-settings','/api/sync-retry'].includes(path)&&req.method!=='POST')fail('POST required.',405);
  if(path==='/api/logout'){const token=(req.headers.cookie||'').match(/crm_session=([^;]+)/)?.[1];if(token)db.prepare('DELETE FROM sessions WHERE hash=?').run(hash(token));res.setHeader('Set-Cookie',['crm_session=; Path=/; Max-Age=0','oauth_session=; Path=/oauth; Max-Age=0']);return json({ok:true});}
+ if(path==='/api/connection-settings'){
+ if(req.method==='GET')return json({admin_email:credentials.email(),secrets:credentials.status()});
+ if(req.method!=='POST')fail('POST required.',405);
+ const b=await body(req);if(!b||typeof b!=='object'||Array.isArray(b))fail('Pengaturan tidak valid.');
+ if(!credentials.verifyPassword(b.current_password))fail('Password admin saat ini salah.',403);
+ const values=b.secrets||{};if(typeof values!=='object'||Array.isArray(values))fail('Token tidak valid.');
+ for(const [k,v] of Object.entries(values)){if(!Object.hasOwn(credentials.status(),k)||typeof v!=='string'||v.length>4096||(v&&(/[\r\n]/.test(v)||v!==v.trim())))fail('Token tidak valid.');if(v&&k!=='mailketing_token'&&v.length<32)fail('Token CRM/MCP dan webhook minimal 32 karakter.');}
+ if(b.admin_email!==undefined&&!validEmail(b.admin_email))fail('Email admin tidak valid.');
+ if(b.new_password!==undefined&&(typeof b.new_password!=='string'||b.new_password.length<12||b.new_password.length>1024))fail('Password baru minimal 12 karakter.');
+ db.exec('BEGIN');try{
+ for(const [k,v] of Object.entries(values))credentials.setSecret(k,v);
+ if(b.admin_email!==undefined)credentials.setEmail(b.admin_email);
+ if(b.new_password!==undefined)credentials.setPassword(b.new_password);
+ if(Object.hasOwn(values,'mailketing_token')){db.prepare("INSERT OR REPLACE INTO settings VALUES('enabled','false')").run();db.prepare("INSERT OR REPLACE INTO settings VALUES('auto_sync','false')").run();}
+ const relogin=b.admin_email!==undefined||b.new_password!==undefined;
+ if(relogin){db.prepare('DELETE FROM sessions').run();db.prepare('UPDATE oauth_grants SET revoked=1').run();db.prepare('DELETE FROM oauth_codes').run();db.prepare('DELETE FROM oauth_transactions').run();}
+ audit('connection or account settings updated');db.exec('COMMIT');return json({ok:true,relogin});
+ }catch(error){db.exec('ROLLBACK');throw error;}
+ }
  if(path==='/api/suppressions')return json(db.prepare('SELECT email,reason FROM suppressions ORDER BY email').all());
  if(path==='/api/bulk-restore-consent'){
  const b=await body(req);if(!Array.isArray(b.ids)||!b.ids.length||b.ids.length>10000||b.ids.some(id=>typeof id!=='string'||!/^[a-f0-9]+$/.test(id)))fail('Pilih 1–10.000 ID kontak yang valid.');
@@ -193,7 +213,7 @@ const server=http.createServer(async(req,res)=>{const u=new URL(req.url,base),pa
  if(c.status!=='unsubscribed')fail('Gunakan verifikasi consent untuk kontak pending.');
  db.exec('BEGIN');try{const restored=restoreConsent(c,b.evidence);db.exec('COMMIT');return json(restored);}catch(err){db.exec('ROLLBACK');throw err;}
  }
- if(path==='/api/state'){const data=Object.fromEntries(kinds.map(k=>[k,all(k)]));data.jobs=db.prepare('SELECT * FROM jobs ORDER BY created DESC LIMIT 500').all().map(j=>{const {html,...summary}=JSON.parse(j.payload);return {...j,payload:JSON.stringify(summary)};});data.events=db.prepare('SELECT * FROM events ORDER BY created DESC LIMIT 200').all();data.audit=db.prepare('SELECT * FROM audit ORDER BY created DESC LIMIT 100').all();data.metrics={accepted:db.prepare("SELECT COUNT(*) n FROM jobs WHERE status='accepted'").get().n,opened:db.prepare("SELECT COUNT(DISTINCT events.job) n FROM events JOIN jobs ON events.job=jobs.id WHERE events.type='opened' AND jobs.status='accepted'").get().n,queued:db.prepare("SELECT COUNT(*) n FROM jobs WHERE status='queued'").get().n};data.config={...config(),token:undefined,connected:!!config().token,webhook_url:env.WEBHOOK_SECRET?`${base}/webhook/${env.WEBHOOK_SECRET}`:'',api_configured:!!env.CRM_API_TOKEN,mcp_configured:!!env.MCP_API_TOKEN||oauth.available(),mcp_oauth_enabled:oauth.enabled(),mcp_url:base+'/mcp'};for(const s of data.segments)s.count=data.contacts.filter(c=>matches(c,s)).length;return json(data);}
+ if(path==='/api/state'){const data=Object.fromEntries(kinds.map(k=>[k,all(k)]));data.jobs=db.prepare('SELECT * FROM jobs ORDER BY created DESC LIMIT 500').all().map(j=>{const {html,...summary}=JSON.parse(j.payload);return {...j,payload:JSON.stringify(summary)};});data.events=db.prepare('SELECT * FROM events ORDER BY created DESC LIMIT 200').all();data.audit=db.prepare('SELECT * FROM audit ORDER BY created DESC LIMIT 100').all();data.metrics={accepted:db.prepare("SELECT COUNT(*) n FROM jobs WHERE status='accepted'").get().n,opened:db.prepare("SELECT COUNT(DISTINCT events.job) n FROM events JOIN jobs ON events.job=jobs.id WHERE events.type='opened' AND jobs.status='accepted'").get().n,queued:db.prepare("SELECT COUNT(*) n FROM jobs WHERE status='queued'").get().n};data.config={...config(),token:undefined,connected:!!config().token,webhook_url:credentials.secret('webhook_secret')?`${base}/webhook/${credentials.secret('webhook_secret')}`:'',api_configured:!!credentials.secret('crm_token'),mcp_configured:!!credentials.secret('mcp_token')||oauth.available(),mcp_oauth_enabled:oauth.enabled(),mcp_url:base+'/mcp'};for(const s of data.segments)s.count=data.contacts.filter(c=>matches(c,s)).length;return json(data);}
  if(path==='/api/crm-report'){const from=Number(u.searchParams.get('from')),to=Number(u.searchParams.get('to'));if(!Number.isFinite(from)||!Number.isFinite(to)||from>to)fail('Periode laporan tidak valid.');return json(report(Object.fromEntries(['contacts','deals','orders','tasks','tickets'].map(k=>[k,all(k)])),from,to));}
  if(path==='/api/sync-settings'){const b=await body(req);if(typeof b.auto_sync!=='boolean'||!Number.isSafeInteger(Number(b.default_list))||Number(b.default_list)<=0)fail('Pilih list dan status sinkronisasi yang valid.');const lists=normaliseLists(await provider('lists'));if(!lists.some(l=>l.id===Number(b.default_list)))fail('List tidak ditemukan di akun Mailketing.');db.prepare('INSERT OR REPLACE INTO settings VALUES(?,?)').run('default_list',String(b.default_list));db.prepare('INSERT OR REPLACE INTO settings VALUES(?,?)').run('auto_sync',String(b.auto_sync));if(b.auto_sync)for(const c of all('contacts'))queueSync(c);audit('automatic subscriber sync configured');return json({message:b.auto_sync?'Sinkronisasi otomatis aktif. Kontak eligible masuk antrean.':'Sinkronisasi otomatis dijeda.'});}
  if(path==='/api/sync-retry'){const b=await body(req);if(typeof b.id!=='string')fail('Pilih job sync.');const j=db.prepare('SELECT * FROM syncjobs WHERE id=?').get(b.id);if(!j||!['failed','skipped'].includes(j.status))fail('Job tidak dapat dicoba ulang.');const c=get('contacts',j.contact);if(!c||c.status!=='active'||!c.consent||suppressed(c.email)||j.list!==config().default_list)fail('Kontak/list tidak lagi memenuhi pengaturan sync.');db.prepare("UPDATE syncjobs SET status='queued',due=?,attempts=0,error='' WHERE id=?").run(Date.now(),j.id);return json({message:'Sinkronisasi masuk antrean ulang.'});}
