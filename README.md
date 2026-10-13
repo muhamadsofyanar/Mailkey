@@ -1,3 +1,23 @@
+# MailK CRM v0.7.0
+
+Paket gabungan: pengaturan aplikasi, builder visual, AI bawaan, inbox IMAP/SMTP, automation reply/branch, laporan campaign, akun tim dan backup/restore. Upgrade langsung dari v0.6.3/v0.6.4 dengan satu redeploy. Baca [UPGRADE_V070.md](UPGRADE_V070.md) sebelum memasang.
+
+```bash
+npm ci
+npm test
+npm start
+```
+
+Memerlukan Node.js 24+, APP_URL dan SESSION_SECRET. Instalasi baru juga memerlukan ADMIN_PASSWORD (12+ karakter) untuk membuat admin awal. Data disimpan pada DATA_DIR atau ./data.
+
+Dockerfile menyalin seluruh modul *.mjs, memasang dependensi terkunci dan memakai curl healthcheck. Token/provider/akun selanjutnya diatur dalam aplikasi.
+
+AI dan mailbox nonaktif secara default sampai koneksi Anda dikonfigurasi. AI memakai endpoint HTTPS kompatibel Chat Completions; inbox memakai IMAP, balasan memakai SMTP. Baca batasan provider, migrasi, role dan pemulihan pada panduan upgrade.
+
+## Dokumentasi versi sebelumnya (arsip)
+
+Instruksi berikut dipertahankan sebagai referensi fitur lama. Instruksi env token/admin yang berbeda digantikan oleh panduan v0.7.0 di atas.
+
 > **v0.6.4**: Token dan akun admin kini dikelola di aplikasi. Baca [UPGRADE_V064.md](UPGRADE_V064.md). Instruksi environment untuk token/admin pada dokumentasi lama di bawah hanya menjadi seed migrasi awal.
 
 # MailK CRM v0.6.3

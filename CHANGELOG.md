@@ -1,3 +1,13 @@
+# v0.7.0 — Paket pembaruan gabungan
+- Perbaikan Docker v0.6.4: semua modul server disalin; npm ci dan curl healthcheck.
+- MailK Studio: editor visual, blok baru, preheader, tema, undo/redo, draft lokal, preview layar; HTML lama dipertahankan.
+- Asisten AI 7 mode dan konfigurasi terenkripsi dalam aplikasi; 4 tools MCP tambahan.
+- Inbox IMAP/TLS, cursor UID, deduplikasi, thread/lampiran, draft dan balasan SMTP manual.
+- Automation replied, stop-on-reply, kondisi/cabang task/tag/skip, serta action tugas/tiket.
+- Laporan campaign balasan dan pendapatan terkait manual.
+- Akun tim admin/operator/viewer, unduhan backup dan restore offline.
+- Perbaikan navigasi ganda yang menghapus input saat pergantian halaman.
+
 # v0.6.4
 - Pengaturan koneksi dan akun admin di aplikasi.
 - Migrasi environment satu kali, enkripsi AES-256-GCM, password scrypt.

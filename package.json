@@ -1,6 +1,6 @@
 {
   "name": "mailk-crm",
-  "version": "0.6.4",
+  "version": "0.7.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,5 +9,10 @@
   },
   "engines": {
     "node": ">=24"
+  },
+  "dependencies": {
+    "imapflow": "2.4.0",
+    "mailparser": "3.9.38",
+    "nodemailer": "10.1.0"
   }
 }

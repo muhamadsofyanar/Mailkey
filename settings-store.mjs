@@ -7,7 +7,7 @@ export function createSettingsStore(db,env){
  const write=(k,v)=>db.prepare('INSERT OR REPLACE INTO settings VALUES(?,?)').run(k,v);
  const encrypt=value=>{const iv=randomBytes(12),cipher=createCipheriv('aes-256-gcm',key,iv);const data=Buffer.concat([cipher.update(value,'utf8'),cipher.final()]);return JSON.stringify({v:1,iv:iv.toString('hex'),tag:cipher.getAuthTag().toString('hex'),data:data.toString('hex')});};
  const decrypt=value=>{const d=JSON.parse(value),cipher=createDecipheriv('aes-256-gcm',key,Buffer.from(d.iv,'hex'));cipher.setAuthTag(Buffer.from(d.tag,'hex'));return Buffer.concat([cipher.update(Buffer.from(d.data,'hex')),cipher.final()]).toString('utf8');};
- const names={mailketing_token:'MAILKETING_API_TOKEN',crm_token:'CRM_API_TOKEN',mcp_token:'MCP_API_TOKEN',webhook_secret:'WEBHOOK_SECRET'};
+ const names={mailketing_token:'MAILKETING_API_TOKEN',crm_token:'CRM_API_TOKEN',mcp_token:'MCP_API_TOKEN',webhook_secret:'WEBHOOK_SECRET',ai_key:'MAILK_AI_API_KEY',imap_password:'MAILK_IMAP_PASSWORD',smtp_password:'MAILK_SMTP_PASSWORD'};
  // Import once, including empty values, so revocation cannot restore an env token.
  for(const [name,source] of Object.entries(names))if(read('secret.'+name)===undefined)write('secret.'+name,encrypt(env[source]||''));
  const secret=name=>decrypt(read('secret.'+name));
